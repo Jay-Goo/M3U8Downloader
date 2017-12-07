@@ -2,6 +2,7 @@ package jaygoo.library.m3u8downloader;
 
 import android.text.TextUtils;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
@@ -11,6 +12,7 @@ import jaygoo.library.m3u8downloader.bean.M3U8;
 import jaygoo.library.m3u8downloader.bean.M3U8Task;
 import jaygoo.library.m3u8downloader.bean.M3U8TaskState;
 import jaygoo.library.m3u8downloader.utils.M3U8Log;
+import jaygoo.library.m3u8downloader.utils.MUtils;
 
 /**
  * ================================================
@@ -121,6 +123,27 @@ public class M3U8Downloader {
     }
 
     /**
+     * 取消任务
+     * @param url
+     */
+    public void cancel(String url){
+        if (TextUtils.isEmpty(url) || isQuicklyClick())return;
+        m3U8DownLoadTask.stop();
+        downloadNextTask();
+    }
+
+    /**
+     * 取消任务,删除缓存
+     * @param url
+     */
+    public void cancelAndDelete(String url){
+        if (TextUtils.isEmpty(url) || isQuicklyClick())return;
+        m3U8DownLoadTask.stop();
+        MUtils.clearDir(new File(MUtils.getSaveFileDir(url)));
+        downloadNextTask();
+    }
+
+    /**
      * 下载任务，如果当前任务在下载列表中则认为是插队，否则入队等候下载
      * @param url
      */
@@ -211,6 +234,7 @@ public class M3U8Downloader {
         @Override
         public void onSuccess(M3U8 m3U8) {
             m3U8DownLoadTask.stop();
+            currentM3U8Task.setM3U8(m3U8);
             currentM3U8Task.setState( M3U8TaskState.SUCCESS);
             if (onM3U8DownloadListener != null) {
                 onM3U8DownloadListener.onDownloadSuccess(currentM3U8Task);
