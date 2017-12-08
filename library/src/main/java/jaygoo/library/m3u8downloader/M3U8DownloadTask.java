@@ -338,7 +338,12 @@ class M3U8DownloadTask {
     }
 
     public File getM3u8File(String url){
-        return new File(MUtils.getSaveFileDir(url), m3u8FileName);
+        try {
+            return new File(MUtils.getSaveFileDir(url), m3u8FileName);
+        }catch (Exception e){
+            M3U8Log.e(e.getMessage());
+        }
+        return null;
     }
 
 }

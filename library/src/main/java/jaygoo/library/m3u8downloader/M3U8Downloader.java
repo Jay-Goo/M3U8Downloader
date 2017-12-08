@@ -105,22 +105,7 @@ public class M3U8Downloader {
         }
     }
 
-    /**
-     * 暂停，如果此任务正在下载则暂停，否则无反应
-     * @param url
-     */
-    public void pause(String url){
-        if (TextUtils.isEmpty(url) || isQuicklyClick())return;
-        m3U8DownLoadTask.stop();
-        pauseList.add(url);
-        currentM3U8Task.setState(M3U8TaskState.PAUSE);
-        if (onM3U8DownloadListener != null){
-            onM3U8DownloadListener.onDownloadPause(currentM3U8Task);
-        }
-        if (downLoadQueue.size() > 0 && url.equals(downLoadQueue.element())){
-            downloadNextTask();
-        }
-    }
+
 
     /**
      * 取消任务
@@ -144,6 +129,23 @@ public class M3U8Downloader {
     }
 
     /**
+     * 暂停，如果此任务正在下载则暂停，否则无反应
+     * @param url
+     */
+    public void pause(String url){
+        if (TextUtils.isEmpty(url) || isQuicklyClick())return;
+        m3U8DownLoadTask.stop();
+        pauseList.add(url);
+        currentM3U8Task.setState(M3U8TaskState.PAUSE);
+        if (onM3U8DownloadListener != null){
+            onM3U8DownloadListener.onDownloadPause(currentM3U8Task);
+        }
+        if (downLoadQueue.size() > 0 && url.equals(downLoadQueue.element())){
+            downloadNextTask();
+        }
+    }
+
+    /**
      * 下载任务，如果当前任务在下载列表中则认为是插队，否则入队等候下载
      * @param url
      */
@@ -160,12 +162,33 @@ public class M3U8Downloader {
     }
 
     /**
+     * 智能下载
+     * 如果文件已经下载完成则不再重复下载
+     * 如果任务正在下载，则暂停当前任务
+     * 否则加入下载队列
+     * @param url
+     */
+    public void smartDownload(String url){
+        if (TextUtils.isEmpty(url) || isQuicklyClick() || checkM3U8IsExist(url))return;
+        if (isTaskDownloading(url)){
+            pause(url);
+        }else {
+            download(url);
+        }
+    }
+
+    /**
      * 检查m3u8文件是否存在
      * @param url
      * @return
      */
     public boolean checkM3U8IsExist(String url){
-        return m3U8DownLoadTask.getM3u8File(url).exists();
+        try {
+            return m3U8DownLoadTask.getM3u8File(url).exists();
+        }catch (Exception e){
+            M3U8Log.e(e.getMessage());
+        }
+        return false;
     }
 
     /**
@@ -182,7 +205,7 @@ public class M3U8Downloader {
     }
 
     public List<String> getPauseList(){
-     return pauseList;
+        return pauseList;
     }
 
     public boolean isTaskDownloading(String url){
@@ -221,7 +244,7 @@ public class M3U8Downloader {
 
         @Override
         public void onDownloading(long totalFileSize, long itemFileSize, int totalTs, int curTs) {
-           if (!m3U8DownLoadTask.isRunning())return;
+            if (!m3U8DownLoadTask.isRunning())return;
             M3U8Log.d("onDownloading: "+totalFileSize+"|"+itemFileSize+"|"+totalTs+"|"+curTs);
             currentM3U8Task.setState(M3U8TaskState.DOWNLOADING);
             downloadProgress = 1.0f * curTs / totalTs;
