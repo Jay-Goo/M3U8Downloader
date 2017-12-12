@@ -32,6 +32,7 @@ public class FullScreenActivity extends Activity{
 
     private StandardGSYVideoPlayer videoPlayer;
     private OrientationUtils orientationUtils;
+    private M3u8Server m3u8Server = new M3u8Server();
     private String encryptKey = "63F06F99D823D33AAB89A0A93DECFEE0";
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -45,26 +46,14 @@ public class FullScreenActivity extends Activity{
         optionModels.add(new VideoOptionModel(IjkMediaPlayer.OPT_CATEGORY_FORMAT,
                 "protocol_whitelist", "crypto,file,http,https,tcp,tls,udp"));
         GSYVideoManager.instance().setOptionModelList(optionModels);
+
         String url = null;
         Bundle bundle = getIntent().getExtras();
         if (bundle != null){
             url = bundle.getString("M3U8_URL");
         }
-        Uri uri = Uri.parse(url);
-        M3U8Log.d("uri: "+uri);
-        String scheme = uri.getScheme();
-        M3U8Log.d("scheme: "+scheme);
-        String mVideoSource;
-        if (null != scheme) {
-            mVideoSource = uri.toString();
-        } else {
-            mVideoSource = uri.getPath();
-        }
-        M3U8Log.d("mVideoSource: "+mVideoSource);
-        String mSource = M3u8Server.createLocalUrl(mVideoSource);
-        M3U8Log.d("mSource: "+mSource);
-        M3u8Server.execute();
-        videoPlayer.setUp(mSource,false,"");
+        m3u8Server.execute();
+        videoPlayer.setUp(m3u8Server.createLocalUrl(url),false,"");
         videoPlayer.getBackButton().setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -78,19 +67,19 @@ public class FullScreenActivity extends Activity{
     @Override
     protected void onResume() {
         super.onResume();
-        M3u8Server.onResume(encryptKey);
+        m3u8Server.onResume(encryptKey);
     }
 
     @Override
     protected void onPause() {
         super.onPause();
-        M3u8Server.onPause(encryptKey);
+        m3u8Server.onPause(encryptKey);
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        M3u8Server.finish();
+        m3u8Server.finish();
         //释放所有
         videoPlayer.getCurrentPlayer().release();
         GSYVideoPlayer.releaseAllVideos();

@@ -1944,7 +1944,7 @@ public abstract class NanoHTTPD {
 
     private final String hostname;
 
-    private final int myPort;
+    final int myPort;
 
     private volatile ServerSocket myServerSocket;
 
@@ -1982,7 +1982,7 @@ public abstract class NanoHTTPD {
      */
     public NanoHTTPD(String hostname, int port) {
         this.hostname = hostname;
-        this.myPort = port;
+        myPort = port;
         setTempFileManagerFactory(new DefaultTempFileManagerFactory());
         setAsyncRunner(new DefaultAsyncRunner());
     }

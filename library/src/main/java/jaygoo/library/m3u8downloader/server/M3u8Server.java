@@ -1,6 +1,8 @@
 package jaygoo.library.m3u8downloader.server;
 
 
+import android.net.Uri;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -16,19 +18,32 @@ import static jaygoo.library.m3u8downloader.server.NanoHTTPD.Response.Status;
 
 
 public class M3u8Server extends NanoHTTPD {
-    private static NanoHTTPD server;
-    public static final int PORT = 8686;
-    private static String filesDir = null;
+    private NanoHTTPD server;
+    private static final int DEFAULT_PORT = 8686;
+    private String filesDir = null;
 
-    public static String createLocalUrl(String filePath){
-        if (filePath != null) filesDir = filePath.substring(0, filePath.lastIndexOf("/") + 1);
-        return String.format("http://127.0.0.1:%d%s", PORT,filePath);
+    public String createLocalUrl(String url){
+        Uri uri = Uri.parse(url);
+        M3U8Log.d("uri: "+uri);
+        String scheme = uri.getScheme();
+        M3U8Log.d("scheme: "+scheme);
+        String filePath ;
+        if (null != scheme) {
+            filePath = uri.toString();
+        } else {
+            filePath = uri.getPath();
+        }
+        if (filePath != null){
+            filesDir = filePath.substring(0, filePath.lastIndexOf("/") + 1);
+           return String.format("http://127.0.0.1:%d%s", myPort, filePath);
+        }
+        return null;
     }
 
     /**
      * 启动服务
      */
-    public static void execute() {
+    public void execute() {
         try {
             server = M3u8Server.class.newInstance();
             server.start(NanoHTTPD.SOCKET_READ_TIMEOUT, false);
@@ -48,7 +63,7 @@ public class M3u8Server extends NanoHTTPD {
         }
     }
 
-    public static void onPause(final String encryptKey){
+    public void onPause(final String encryptKey){
         new Thread(new Runnable() {
             @Override
             public void run() {
@@ -62,7 +77,7 @@ public class M3u8Server extends NanoHTTPD {
 
     }
 
-    public static void onResume(final String encryptKey){
+    public void onResume(final String encryptKey){
         new Thread(new Runnable() {
             @Override
             public void run() {
@@ -79,7 +94,7 @@ public class M3u8Server extends NanoHTTPD {
     /**
      * 关闭服务
      */
-    public static void finish() {
+    public void finish() {
         if(server != null){
             server.stop();
             M3U8Log.d("M3u8Server 服务已经关闭：\n");
@@ -88,7 +103,11 @@ public class M3u8Server extends NanoHTTPD {
     }
 
     public M3u8Server() {
-        super(PORT);
+        super(DEFAULT_PORT);
+    }
+
+    public M3u8Server(int port) {
+        super(port);
     }
 
     @Override
