@@ -145,6 +145,13 @@ public class M3U8Downloader {
         }
     }
 
+    public void pause(List<String> urls){
+        if (urls == null || urls.size() == 0 || isQuicklyClick())return;
+        for (String url : urls){
+            pause(url);
+        }
+    }
+
     /**
      * 下载任务，如果当前任务在下载列表中则认为是插队，否则入队等候下载
      * @param url
