@@ -108,6 +108,11 @@ public class MainActivity extends AppCompatActivity {
     private OnM3U8DownloadListener onM3U8DownloadListener = new OnM3U8DownloadListener() {
 
         @Override
+        public void onDownloadItem(M3U8Task task, long itemFileSize, int totalTs, int curTs) {
+            super.onDownloadItem(task, itemFileSize, totalTs, curTs);
+        }
+
+        @Override
         public void onDownloadSuccess(M3U8Task task) {
             super.onDownloadSuccess(task);
             adapter.notifyChanged(taskList, task);
