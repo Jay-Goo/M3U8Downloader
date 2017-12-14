@@ -1,4 +1,14 @@
 apply plugin: 'com.android.library'
+
+buildscript {
+    repositories {
+        jcenter()
+    }
+    dependencies {
+        classpath 'com.github.dcendents:android-maven-gradle-plugin:1.5'
+    }
+}
+
 apply plugin: 'com.github.dcendents.android-maven'
 group='com.github.Jay-Goo'
 
@@ -24,10 +34,8 @@ android {
 }
 
 dependencies {
-
     compile fileTree(include: ['*.jar'], dir: 'libs')
     provided 'com.android.support:appcompat-v7:26.+'
-
 }
 
 // 指定编码

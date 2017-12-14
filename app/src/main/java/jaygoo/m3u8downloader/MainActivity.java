@@ -15,6 +15,7 @@ import com.karumi.dexter.PermissionToken;
 import com.karumi.dexter.listener.PermissionRequest;
 import com.karumi.dexter.listener.multi.MultiplePermissionsListener;
 
+import java.io.File;
 import java.util.List;
 
 import jaygoo.library.m3u8downloader.M3U8Downloader;
@@ -23,6 +24,7 @@ import jaygoo.library.m3u8downloader.OnM3U8DownloadListener;
 import jaygoo.library.m3u8downloader.bean.M3U8Task;
 import jaygoo.library.m3u8downloader.utils.AES128Utils;
 import jaygoo.library.m3u8downloader.utils.M3U8Log;
+import jaygoo.library.m3u8downloader.utils.MUtils;
 
 public class MainActivity extends AppCompatActivity {
     static final String[] PERMISSIONS = new String[]{
@@ -33,7 +35,7 @@ public class MainActivity extends AppCompatActivity {
     M3U8Task[] taskList = new M3U8Task[6];
     private VideoListAdapter adapter;
     private String dirPath;
-    private String encryptKey = "63F06F99D823D33AAB89A0A93DECFEE0";
+    private String encryptKey = "63F06F99D823D33AAB89A0A93DECFEE0"; //get the key by AES128Utils.getAESKey()
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -73,18 +75,22 @@ public class MainActivity extends AppCompatActivity {
                     intent.putExtra("M3U8_URL",M3U8Downloader.getInstance().getM3U8Path(url));
                     startActivity(intent);
                 }else {
-                    if (M3U8Downloader.getInstance().isTaskDownloading(url)) {
-                        M3U8Downloader.getInstance().pause(url);
-                    } else {
-                        M3U8Downloader.getInstance().download(url);
-                    }
+                    M3U8Downloader.getInstance().download(url);
                 }
+            }
+        });
+
+        findViewById(R.id.clear_btn).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                MUtils.clearDir(new File(dirPath));
+                adapter.notifyDataSetChanged();
             }
         });
     }
 
     private void initData(){
-//        MUtils.clearDir(new File(dirPath));
+
         M3U8Task bean0 = new M3U8Task("https://media6.smartstudy.com/52/9c/10732/4/dest.m3u8");
         M3U8Task bean1 = new M3U8Task("https://media6.smartstudy.com/b2/75/2475/4/dest.m3u8");
         M3U8Task bean2 = new M3U8Task("https://media6.smartstudy.com/ae/07/3997/2/dest.m3u8");
@@ -110,51 +116,45 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onDownloadPending(M3U8Task task) {
             super.onDownloadPending(task);
-            adapter.notifyChanged(taskList, task);
+            notifyChanged(task);
         }
 
         @Override
         public void onDownloadPause(M3U8Task task) {
             super.onDownloadPause(task);
-            adapter.notifyChanged(taskList, task);
+            notifyChanged(task);
         }
 
         @Override
         public void onDownloadProgress(final M3U8Task task) {
             super.onDownloadProgress(task);
-            runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
-                    adapter.notifyChanged(taskList, task);
-                }
-            });
-
+            notifyChanged(task);
         }
 
         @Override
         public void onDownloadPrepare(final M3U8Task task) {
             super.onDownloadPrepare(task);
-            runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
-                    adapter.notifyChanged(taskList, task);
-                }
-            });
+            notifyChanged(task);
+
         }
 
         @Override
-        public void onDownloadError(M3U8Task task, Throwable errorMsg) {
+        public void onDownloadError(final M3U8Task task, Throwable errorMsg) {
             super.onDownloadError(task, errorMsg);
-            adapter.notifyChanged(taskList, task);
+            notifyChanged(task);
         }
 
-        @Override
-        public void onAllTaskComplete() {
-            super.onAllTaskComplete();
-            Toast.makeText(getApplicationContext(),"文件全部下载完成！！！！", Toast.LENGTH_LONG).show();
-
-        }
     };
+
+    private void notifyChanged(final M3U8Task task){
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                adapter.notifyChanged(taskList, task);
+            }
+        });
+
+    }
 
     private void requestAppPermissions() {
         Dexter.withActivity(this)

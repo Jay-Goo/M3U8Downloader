@@ -8,7 +8,11 @@
     android:orientation="vertical"
     tools:context="jaygoo.m3u8downloader.MainActivity">
 
-
+    <Button
+        android:id="@+id/clear_btn"
+        android:text="Clear Data"
+        android:layout_width="match_parent"
+        android:layout_height="50dp"/>
     <ListView
         android:id="@+id/list_view"
         android:layout_width="match_parent"

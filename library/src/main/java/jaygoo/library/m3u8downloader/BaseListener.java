@@ -1,9 +1,4 @@
-package jaygoo.library.m3u8downloader.bean;
-
-/**
- * 监听基类
- * Created by HDL on 2017/8/10.
- */
+package jaygoo.library.m3u8downloader;
 
 public interface BaseListener {
     /**

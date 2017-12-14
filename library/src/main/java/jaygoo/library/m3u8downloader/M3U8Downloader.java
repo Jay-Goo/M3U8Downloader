@@ -3,10 +3,7 @@ package jaygoo.library.m3u8downloader;
 import android.text.TextUtils;
 
 import java.io.File;
-import java.util.ArrayList;
-import java.util.LinkedList;
 import java.util.List;
-import java.util.Queue;
 
 import jaygoo.library.m3u8downloader.bean.M3U8;
 import jaygoo.library.m3u8downloader.bean.M3U8Task;
@@ -26,76 +23,44 @@ public class M3U8Downloader {
 
     private long currentTime;
     private M3U8Task currentM3U8Task;
-    private Queue<String> downLoadQueue;
-    private static M3U8Downloader instance;
+    private DownloadQueue downLoadQueue;
     private M3U8DownloadTask m3U8DownLoadTask;
-    private List<String> pauseList = new ArrayList<>();
     private OnM3U8DownloadListener onM3U8DownloadListener;
 
     private M3U8Downloader() {
-        downLoadQueue = new LinkedList<>();
+        downLoadQueue = new DownloadQueue();
         m3U8DownLoadTask = new M3U8DownloadTask();
     }
 
+    private static class SingletonHolder{
+        static M3U8Downloader instance = new M3U8Downloader();
+    }
+
     public static M3U8Downloader getInstance(){
-        if (instance == null){
-            instance = new M3U8Downloader();
-        }
-        return instance;
+        return SingletonHolder.instance;
     }
 
 
     /**
-     * 防止快速点击引起ThreadPoolExecutor 频繁创建销毁引起crash
+     * 防止快速点击引起ThreadPoolExecutor频繁创建销毁引起crash
      * @return
      */
     private boolean isQuicklyClick(){
         boolean result = false;
         if (System.currentTimeMillis() - currentTime <= 100){
             result = true;
+            M3U8Log.d("is too quickly click!");
         }
         currentTime = System.currentTimeMillis();
         return result;
     }
 
-    /**
-     * 忽略当前任务将其移至队列尾部.开始下一个任务
-     */
-    private void ignoreDownloadTask() {
-        if (null != downLoadQueue.poll() && downLoadQueue.size() > 0){
-            download(downLoadQueue.element());
-        }
-    }
 
     /**
      * 下载下一个任务，直到任务全部完成
      */
     private void downloadNextTask() {
-        if (null != downLoadQueue.poll() && downLoadQueue.size() > 0){
-            startDownloadTask(downLoadQueue.element());
-        }else {
-            //所有任务都完成了
-            if (onM3U8DownloadListener != null && pauseList.size() == 0){
-                onM3U8DownloadListener.onAllTaskComplete();
-            }
-        }
-    }
-
-    /**
-     * 插队任务
-     * @param url
-     */
-    private void insertDownloadTask(String url){
-        //停止当前任务
-        m3U8DownLoadTask.stop();
-        //依次出队，直至找到要插队的任务
-        while (!url.equals(downLoadQueue.element())){
-            downLoadQueue.poll();
-        }
-        //开始当前任务
-        if (downLoadQueue.size() > 0) {
-            startDownloadTask(downLoadQueue.element());
-        }
+        startDownloadTask(downLoadQueue.poll());
     }
 
     private void pendingTask(M3U8Task task){
@@ -106,82 +71,78 @@ public class M3U8Downloader {
     }
 
 
-
     /**
-     * 取消任务
-     * @param url
-     */
-    public void cancel(String url){
-        if (TextUtils.isEmpty(url) || isQuicklyClick())return;
-        m3U8DownLoadTask.stop();
-        downloadNextTask();
-    }
-
-    /**
-     * 取消任务,删除缓存
-     * @param url
-     */
-    public void cancelAndDelete(String url){
-        if (TextUtils.isEmpty(url) || isQuicklyClick())return;
-        m3U8DownLoadTask.stop();
-        MUtils.clearDir(new File(MUtils.getSaveFileDir(url)));
-        downloadNextTask();
-    }
-
-    /**
-     * 暂停，如果此任务正在下载则暂停，否则无反应
-     * @param url
-     */
-    public void pause(String url){
-        if (TextUtils.isEmpty(url) || isQuicklyClick())return;
-        m3U8DownLoadTask.stop();
-        pauseList.add(url);
-        currentM3U8Task.setState(M3U8TaskState.PAUSE);
-        if (onM3U8DownloadListener != null){
-            onM3U8DownloadListener.onDownloadPause(currentM3U8Task);
-        }
-        if (downLoadQueue.size() > 0 && url.equals(downLoadQueue.element())){
-            downloadNextTask();
-        }
-    }
-
-    public void pause(List<String> urls){
-        if (urls == null || urls.size() == 0 || isQuicklyClick())return;
-        for (String url : urls){
-            pause(url);
-        }
-    }
-
-    /**
-     * 下载任务，如果当前任务在下载列表中则认为是插队，否则入队等候下载
+     * 下载任务
+     * 如果当前任务在下载列表中则认为是暂停
+     * 否则入队等候下载
      * @param url
      */
     public void download(String url){
         if (TextUtils.isEmpty(url) || isQuicklyClick())return;
-        if (downLoadQueue.contains(url)){
-            pendingTask(currentM3U8Task);
-            insertDownloadTask(url);
+        M3U8Task task = new M3U8Task(url);
+        if (downLoadQueue.contains(task)){
+            task = downLoadQueue.getTask(url);
+            if (task.getState() == M3U8TaskState.PAUSE || task.getState() == M3U8TaskState.ERROR){
+                startDownloadTask(task);
+            }else {
+                pause(url);
+            }
         }else {
-            pendingTask(new M3U8Task(url));
-            downLoadQueue.offer(url);
-            startDownloadTask(url);
+            downLoadQueue.offer(task);
+            startDownloadTask(task);
+
+
         }
     }
 
     /**
-     * 智能下载
-     * 如果文件已经下载完成则不再重复下载
-     * 如果任务正在下载，则暂停当前任务
-     * 否则加入下载队列
+     * 暂停，如果此任务正在下载则暂停，否则无反应
+     * 只支持单一任务暂停，多任务暂停请使用{@link #pause(java.util.List)}
      * @param url
      */
-    public void smartDownload(String url){
-        if (TextUtils.isEmpty(url) || isQuicklyClick() || checkM3U8IsExist(url))return;
-        if (isTaskDownloading(url)){
-            pause(url);
-        }else {
-            download(url);
+    public void pause(String url){
+        if (TextUtils.isEmpty(url))return;
+        M3U8Task task = downLoadQueue.getTask(url);
+        if (task != null) {
+            task.setState(M3U8TaskState.PAUSE);
+
+            if (onM3U8DownloadListener != null) {
+                onM3U8DownloadListener.onDownloadPause(task);
+            }
+
+            if (url.equals(currentM3U8Task.getUrl())) {
+                m3U8DownLoadTask.stop();
+                downloadNextTask();
+            } else {
+                downLoadQueue.remove(task);
+            }
         }
+    }
+
+    /**
+     * 批量暂停
+     * @param urls
+     */
+    public void pause(List<String> urls){
+        if (urls == null || urls.size() == 0)return;
+        boolean isCurrentTaskPause = false;
+        for (String url : urls){
+            if (downLoadQueue.contains(new M3U8Task(url))){
+                M3U8Task task = downLoadQueue.getTask(url);
+                if (task != null){
+                    task.setState(M3U8TaskState.PAUSE);
+                    if (onM3U8DownloadListener != null){
+                        onM3U8DownloadListener.onDownloadPause(task);
+                    }
+                    if (task.equals(currentM3U8Task)){
+                        m3U8DownLoadTask.stop();
+                        isCurrentTaskPause = true;
+                    }
+                    downLoadQueue.remove(task);
+                }
+            }
+        }
+        if (isCurrentTaskPause)startDownloadTask(downLoadQueue.peek());
     }
 
     /**
@@ -208,18 +169,19 @@ public class M3U8Downloader {
     }
 
     public boolean isRunning(){
-        return downLoadQueue.size() > 0 && m3U8DownLoadTask.isRunning();
+        return m3U8DownLoadTask.isRunning();
     }
 
-    public List<String> getPauseList(){
-        return pauseList;
-    }
 
-    public boolean isTaskDownloading(String url){
+    /**
+     *  if task is the current task , it will return true
+     * @param url
+     * @return
+     */
+    public boolean isCurrentTask(String url){
         return !TextUtils.isEmpty(url)
-                && downLoadQueue.size() > 0
-                && url.equals(downLoadQueue.element())
-                && m3U8DownLoadTask.isRunning();
+                && downLoadQueue.peek() != null
+                && downLoadQueue.peek().getUrl().equals(url);
     }
 
 
@@ -235,25 +197,103 @@ public class M3U8Downloader {
         return m3U8DownLoadTask.getEncryptKey();
     }
 
-    private void startDownloadTask(String url){
-        if (m3U8DownLoadTask.isRunning())return;
+    private void startDownloadTask(M3U8Task task){
+        if (task == null)return;
+        pendingTask(task);
+        if (!downLoadQueue.isHead(task)){
+            M3U8Log.d("start download task, but task is running: " + task.getUrl());
+            return;
+        }
+        if (task.getState() == M3U8TaskState.PAUSE){
+            M3U8Log.d("start download task, but task has pause: " + task.getUrl());
+            return;
+        }
         try {
-            if (pauseList.contains(url))pauseList.remove(url);
-            m3U8DownLoadTask.download(url, onDownloadListener);
+            currentM3U8Task = task;
+            M3U8Log.d("====== start downloading ===== " + task.getUrl());
+            m3U8DownLoadTask.download(task.getUrl(), onTaskDownloadListener);
         }catch (Exception e){
             M3U8Log.e("startDownloadTask Error:"+e.getMessage());
         }
     }
 
-    private OnDownloadListener onDownloadListener = new OnDownloadListener() {
+    /**
+     * 取消任务
+     * @param url
+     */
+    public void cancel(String url){
+        pause(url);
+    }
+
+    /**
+     * 批量取消任务
+     * @param urls
+     */
+    public void cancel(List<String> urls){
+        pause(urls);
+    }
+
+    /**
+     * 取消任务,删除缓存
+     * @param url
+     */
+    public void cancelAndDelete(final String url, final OnDeleteTaskListener listener){
+        pause(url);
+        listener.onStart();
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                boolean isDelete = MUtils.clearDir(new File(MUtils.getSaveFileDir(url)));
+                if (isDelete){
+                    listener.onSuccess();
+                }else {
+                    listener.onFail();
+                }
+            }
+        }).start();
+    }
+
+    /**
+     *  批量取消任务,删除缓存
+     * @param urls
+     * @param listener
+     */
+    public void cancelAndDelete(final List<String> urls, final OnDeleteTaskListener listener){
+        pause(urls);
+        listener.onStart();
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                boolean isDelete = true;
+                for (String url : urls){
+                    isDelete = isDelete && MUtils.clearDir(new File(MUtils.getSaveFileDir(url)));
+                }
+                if (isDelete){
+                    listener.onSuccess();
+                }else {
+                    listener.onFail();
+                }
+            }
+        }).start();
+    }
+
+    private OnTaskDownloadListener onTaskDownloadListener = new OnTaskDownloadListener() {
         private long lastLength;
         private float downloadProgress;
+
+        @Override
+        public void onStartDownload(int totalTs, int curTs) {
+            M3U8Log.d("onStartDownload: "+totalTs+"|"+curTs);
+
+            currentM3U8Task.setState(M3U8TaskState.DOWNLOADING);
+            downloadProgress = 1.0f * curTs / totalTs;
+        }
 
         @Override
         public void onDownloading(long totalFileSize, long itemFileSize, int totalTs, int curTs) {
             if (!m3U8DownLoadTask.isRunning())return;
             M3U8Log.d("onDownloading: "+totalFileSize+"|"+itemFileSize+"|"+totalTs+"|"+curTs);
-            currentM3U8Task.setState(M3U8TaskState.DOWNLOADING);
+
             downloadProgress = 1.0f * curTs / totalTs;
 
             if (onM3U8DownloadListener != null){
@@ -288,7 +328,6 @@ public class M3U8Downloader {
 
         @Override
         public void onStart() {
-            currentM3U8Task = new M3U8Task(downLoadQueue.peek());
             currentM3U8Task.setState(M3U8TaskState.PREPARE);
             if (onM3U8DownloadListener != null){
                 onM3U8DownloadListener.onDownloadPrepare(currentM3U8Task);
@@ -298,12 +337,12 @@ public class M3U8Downloader {
 
         @Override
         public void onError(Throwable errorMsg) {
-            ignoreDownloadTask();
             currentM3U8Task.setState(M3U8TaskState.ERROR);
             if (onM3U8DownloadListener != null){
                 onM3U8DownloadListener.onDownloadError(currentM3U8Task, errorMsg);
             }
             M3U8Log.e("onError: "+ errorMsg.getMessage());
+            downloadNextTask();
         }
 
     };

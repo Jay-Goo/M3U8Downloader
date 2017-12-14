@@ -20,6 +20,7 @@ import static jaygoo.library.m3u8downloader.utils.MUtils.saveFile;
  * ================================================
  */
 public class M3U8EncryptHelper {
+
     public static void encryptFile(String key, String fileName) throws Exception{
         if (TextUtils.isEmpty(key)) return;
         byte[] bytes = AES128Utils.getAESEncode(key,readFile(fileName));
