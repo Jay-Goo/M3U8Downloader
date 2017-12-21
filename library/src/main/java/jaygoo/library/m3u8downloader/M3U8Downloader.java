@@ -1,6 +1,8 @@
 package jaygoo.library.m3u8downloader;
 
+import android.support.annotation.Nullable;
 import android.text.TextUtils;
+import android.util.Log;
 
 import java.io.File;
 import java.util.List;
@@ -204,6 +206,7 @@ public class M3U8Downloader {
             M3U8Log.d("start download task, but task is running: " + task.getUrl());
             return;
         }
+
         if (task.getState() == M3U8TaskState.PAUSE){
             M3U8Log.d("start download task, but task has pause: " + task.getUrl());
             return;
@@ -237,17 +240,21 @@ public class M3U8Downloader {
      * 取消任务,删除缓存
      * @param url
      */
-    public void cancelAndDelete(final String url, final OnDeleteTaskListener listener){
+    public void cancelAndDelete(final String url, @Nullable final OnDeleteTaskListener listener){
         pause(url);
-        listener.onStart();
+        if (listener != null) {
+            listener.onStart();
+        }
         new Thread(new Runnable() {
             @Override
             public void run() {
                 boolean isDelete = MUtils.clearDir(new File(MUtils.getSaveFileDir(url)));
-                if (isDelete){
-                    listener.onSuccess();
-                }else {
-                    listener.onFail();
+                if (listener != null) {
+                    if (isDelete) {
+                        listener.onSuccess();
+                    } else {
+                        listener.onFail();
+                    }
                 }
             }
         }).start();
@@ -258,9 +265,11 @@ public class M3U8Downloader {
      * @param urls
      * @param listener
      */
-    public void cancelAndDelete(final List<String> urls, final OnDeleteTaskListener listener){
+    public void cancelAndDelete(final List<String> urls, @Nullable final OnDeleteTaskListener listener){
         pause(urls);
-        listener.onStart();
+        if (listener != null) {
+            listener.onStart();
+        }
         new Thread(new Runnable() {
             @Override
             public void run() {
@@ -268,10 +277,12 @@ public class M3U8Downloader {
                 for (String url : urls){
                     isDelete = isDelete && MUtils.clearDir(new File(MUtils.getSaveFileDir(url)));
                 }
-                if (isDelete){
-                    listener.onSuccess();
-                }else {
-                    listener.onFail();
+                if (listener != null) {
+                    if (isDelete) {
+                        listener.onSuccess();
+                    } else {
+                        listener.onFail();
+                    }
                 }
             }
         }).start();
@@ -337,12 +348,12 @@ public class M3U8Downloader {
 
         @Override
         public void onError(Throwable errorMsg) {
-            currentM3U8Task.setState(M3U8TaskState.ERROR);
-            if (onM3U8DownloadListener != null){
-                onM3U8DownloadListener.onDownloadError(currentM3U8Task, errorMsg);
-            }
-            M3U8Log.e("onError: "+ errorMsg.getMessage());
-            downloadNextTask();
+                currentM3U8Task.setState(M3U8TaskState.ERROR);
+                if (onM3U8DownloadListener != null) {
+                    onM3U8DownloadListener.onDownloadError(currentM3U8Task, errorMsg);
+                }
+                M3U8Log.e("onError: " + errorMsg.getMessage());
+                downloadNextTask();
         }
 
     };

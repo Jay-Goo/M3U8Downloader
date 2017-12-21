@@ -34,11 +34,14 @@ class DownloadQueue {
      * @return
      */
     public M3U8Task poll(){
-        if (queue.size() >= 2){
-            queue.remove(0);
-            return queue.get(0);
-        }else if (queue.size() == 1){
-            queue.remove(0);
+        try {
+            if (queue.size() >= 2){
+                queue.remove(0);
+                return queue.get(0);
+            }else if (queue.size() == 1){
+                queue.remove(0);
+            }
+        }catch (Exception e){
         }
         return null;
     }
@@ -48,8 +51,11 @@ class DownloadQueue {
      * @return
      */
     public M3U8Task peek(){
-        if (queue.size() >= 1){
-            return queue.get(0);
+        try {
+            if (queue.size() >= 1){
+                return queue.get(0);
+            }
+        }catch (Exception e){
         }
         return null;
     }
@@ -81,16 +87,24 @@ class DownloadQueue {
      * @return
      */
     public M3U8Task getTask(String url){
-        for (int i = 0; i < queue.size(); i++){
-            if (queue.get(i).getUrl().equals(url)){
-                return queue.get(i);
+        try {
+            for (int i = 0; i < queue.size(); i++){
+                if (queue.get(i).getUrl().equals(url)){
+                    return queue.get(i);
+                }
             }
+        }catch (Exception e){
         }
+
         return null;
     }
 
     public boolean isEmpty(){
-        return queue.size() == 0;
+        return size() == 0;
+    }
+
+    public int size(){
+        return queue.size();
     }
 
     public boolean isHead(String url){

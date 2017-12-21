@@ -1,5 +1,8 @@
 package jaygoo.library.m3u8downloader;
 
+import android.os.Handler;
+import android.os.Message;
+
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -26,6 +29,10 @@ import jaygoo.library.m3u8downloader.utils.MUtils;
  * ================================================
  */
 class M3U8DownloadTask {
+    private static final int WHAT_ON_ERROR = 1001;
+    private static final int WHAT_ON_PROGRESS = 1002;
+    private static final int WHAT_ON_SUCCESS = 1003;
+    private static final int WHAT_ON_START_DOWNLOAD = 1004;
     private OnTaskDownloadListener onTaskDownloadListener;
     //加密Key，默认为空，不加密
     private String encryptKey = null;
@@ -67,6 +74,33 @@ class M3U8DownloadTask {
     private Timer netSpeedTimer;
     private ExecutorService executor;//线程池
     private M3U8 currentM3U8;
+
+    private WeakHandler mHandler = new WeakHandler(new Handler.Callback() {
+        @Override
+        public boolean handleMessage(Message msg) {
+            switch (msg.what) {
+                case WHAT_ON_ERROR:
+                    onTaskDownloadListener.onError((Throwable) msg.obj);
+                    break;
+
+                case WHAT_ON_START_DOWNLOAD:
+                    onTaskDownloadListener.onStartDownload(totalTs, curTs);
+                    break;
+
+                case WHAT_ON_PROGRESS:
+                    onTaskDownloadListener.onDownloading(totalFileSize, itemFileSize, totalTs, curTs);
+                    break;
+
+                case WHAT_ON_SUCCESS:
+                    if (netSpeedTimer != null) {
+                        netSpeedTimer.cancel();
+                    }
+                    onTaskDownloadListener.onSuccess(currentM3U8);
+                    break;
+            }
+            return true;
+        }
+    });
 
     public M3U8DownloadTask(){
         connTimeout = M3U8DownloaderConfig.getConnTimeout();
@@ -138,10 +172,7 @@ class M3U8DownloadTask {
                                 currentM3U8.setM3u8FilePath(m3u8File.getPath());
                                 currentM3U8.setDirFilePath(saveDir);
                                 currentM3U8.getFileSize();
-                                if (netSpeedTimer != null) {
-                                    netSpeedTimer.cancel();
-                                }
-                                onTaskDownloadListener.onSuccess(currentM3U8);
+                                mHandler.sendEmptyMessage(WHAT_ON_SUCCESS);
                                 isRunning = false;
                             }
                         } catch (InterruptedIOException e) {
@@ -240,7 +271,7 @@ class M3U8DownloadTask {
                             if (conn.getResponseCode() == 200) {
                                 if (isStartDownload){
                                     isStartDownload = false;
-                                    onTaskDownloadListener.onStartDownload(totalTs, curTs);
+                                    mHandler.sendEmptyMessage(WHAT_ON_START_DOWNLOAD);
                                 }
                                 inputStream = conn.getInputStream();
                                 fos = new FileOutputStream(file);//会自动创建文件
@@ -278,7 +309,7 @@ class M3U8DownloadTask {
 
                         itemFileSize = file.length();
                         m3U8Ts.setFileSize(itemFileSize);
-                        onTaskDownloadListener.onDownloading(totalFileSize, itemFileSize, totalTs, curTs);
+                        mHandler.sendEmptyMessage(WHAT_ON_PROGRESS);
                         curTs++;
                     }else {
                         curTs ++;
@@ -304,7 +335,10 @@ class M3U8DownloadTask {
         if ("thread interrupted".equals(e.getMessage())) {
             return;
         }
-        onTaskDownloadListener.onError(e);
+        Message msg = Message.obtain();
+        msg.obj = e;
+        msg.what = WHAT_ON_ERROR;
+        mHandler.sendMessage(msg);
     }
 
     /**
