@@ -16,4 +16,6 @@ public class M3U8TaskState {
     public static final int SUCCESS = 3;//下载完成
     public static final int ERROR = 4;//下载出错
     public static final int PAUSE = 5;//下载暂停
+    public static final int ENOSPC = 6;//空间不足
+
 }

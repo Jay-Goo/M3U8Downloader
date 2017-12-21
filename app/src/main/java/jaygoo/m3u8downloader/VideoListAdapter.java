@@ -72,7 +72,11 @@ public class VideoListAdapter extends ArrayAdapter<M3U8Task> {
                 stateTv.setText("正在下载");
                 break;
             case M3U8TaskState.ERROR:
-                stateTv.setText("下载出错");
+                stateTv.setText("下载异常，点击重试");
+                break;
+                //关于存储空间不足测试方案，参考 http://blog.csdn.net/google_acmer/article/details/78649720
+            case M3U8TaskState.ENOSPC:
+                stateTv.setText("存储空间不足");
                 break;
             case M3U8TaskState.PREPARE:
                 stateTv.setText("准备中");

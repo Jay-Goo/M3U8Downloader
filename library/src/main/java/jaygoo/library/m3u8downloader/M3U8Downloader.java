@@ -348,12 +348,16 @@ public class M3U8Downloader {
 
         @Override
         public void onError(Throwable errorMsg) {
+            if (errorMsg.getMessage() != null && errorMsg.getMessage().contains("ENOSPC")){
+                currentM3U8Task.setState(M3U8TaskState.ENOSPC);
+            }else {
                 currentM3U8Task.setState(M3U8TaskState.ERROR);
-                if (onM3U8DownloadListener != null) {
-                    onM3U8DownloadListener.onDownloadError(currentM3U8Task, errorMsg);
-                }
-                M3U8Log.e("onError: " + errorMsg.getMessage());
-                downloadNextTask();
+            }
+            if (onM3U8DownloadListener != null) {
+                onM3U8DownloadListener.onDownloadError(currentM3U8Task, errorMsg);
+            }
+            M3U8Log.e("onError: " + errorMsg.getMessage());
+            downloadNextTask();
         }
 
     };
