@@ -20,7 +20,8 @@
 
         <activity android:name=".FullScreenActivity"
                   android:theme="@style/FullScreenTheme"
-            android:windowSoftInputMode="stateAlwaysHidden">
+                  android:configChanges="orientation|keyboardHidden|screenSize"
+                  android:windowSoftInputMode="stateAlwaysHidden">
         </activity>
     </application>
 

@@ -33,6 +33,5 @@ dependencies {
     compile 'com.karumi:dexter:4.2.0'
     compile project(path: ':library')
     compile 'com.shuyu:GSYVideoPlayer:2.1.1'
-    compile 'com.github.Jay-Goo:M3U8HttpServer:v1.0.2'
 
 }
