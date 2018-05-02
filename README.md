@@ -11,7 +11,7 @@ allprojects {
 	}
 	
 dependencies {
-	        compile 'com.github.Jay-Goo:M3U8Downloader:V1.0.6'
+	        compile 'com.github.Jay-Goo:M3U8Downloader:V1.0.7'
 	}
 ```
 

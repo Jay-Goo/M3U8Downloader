@@ -253,10 +253,10 @@ class M3U8DownloadTask {
 
                     File file;
                     try {
-                        String fileName = M3U8EncryptHelper.encryptFileName(encryptKey,m3U8Ts.getFile());
+                        String fileName = M3U8EncryptHelper.encryptFileName(encryptKey, m3U8Ts.obtainEncodeTsFileName());
                         file = new File(dir + File.separator + fileName);
                     } catch (Exception e) {
-                        file = new File(dir + File.separator + m3U8Ts.getFile());
+                        file = new File(dir + File.separator + m3U8Ts.getUrl());
                     }
 
                     if (!file.exists()) {//下载过的就不管了
@@ -264,7 +264,7 @@ class M3U8DownloadTask {
                         FileOutputStream fos = null;
                         InputStream inputStream = null;
                         try {
-                            URL url = new URL(basePath + m3U8Ts.getFile());
+                            URL url = new URL(m3U8Ts.obtainFullUrl(basePath));
                             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
                             conn.setConnectTimeout(connTimeout);
                             conn.setReadTimeout(readTimeout);

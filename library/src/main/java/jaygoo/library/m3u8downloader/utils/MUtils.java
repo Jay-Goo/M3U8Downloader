@@ -130,7 +130,7 @@ public class MUtils {
         for (M3U8Ts m3U8Ts : m3U8.getTsList()) {
             if (keyPath != null) bfw.write("#EXT-X-KEY:METHOD=AES-128,URI=\""+keyPath+"\"\n");
             bfw.write("#EXTINF:" + m3U8Ts.getSeconds()+",\n");
-            bfw.write(m3U8Ts.getFile());
+            bfw.write(m3U8Ts.obtainEncodeTsFileName());
             bfw.newLine();
         }
         bfw.write("#EXT-X-ENDLIST");
