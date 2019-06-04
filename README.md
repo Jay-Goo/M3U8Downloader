@@ -125,7 +125,7 @@ AES128Utils.getAESKey()
 ### 本地播放
 普通未加密请使用 [M3U8HttpServer](https://github.com/Jay-Goo/M3U8HttpServer) 
 
- 加密请参考 [EncryptM3U8Server](https://github.com/Jay-Goo/M3U8Downloader/blob/master/app/src/main/java/jaygoo/m3u8downloader/EncryptM3U8Server.java)
+ 加密解密请使用 [M3U8EncryptHelper](https://github.com/Jay-Goo/M3U8Downloader/blob/master/library/src/main/java/jaygoo/library/m3u8downloader/M3U8EncryptHelper.java)
  
 具体使用样例参考  [FullScreenActivity](https://github.com/Jay-Goo/M3U8Downloader/blob/master/app/src/main/java/jaygoo/m3u8downloader/FullScreenActivity.java)
 
